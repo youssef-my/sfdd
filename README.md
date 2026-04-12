@@ -53,7 +53,7 @@ print(result.fault_detected)
 print(result.violated_pairs)
 ```
 
-The repository includes runnable examples in [examples/quickstart.py](/Users/youssefmahmoud/Desktop/code/instructions/sfdd-library/sfdd/examples/quickstart.py), [examples/custom_robot.py](/Users/youssefmahmoud/Desktop/code/instructions/sfdd-library/sfdd/examples/custom_robot.py), and [examples/streaming.py](/Users/youssefmahmoud/Desktop/code/instructions/sfdd-library/sfdd/examples/streaming.py).
+The repository includes runnable examples in [examples/quickstart.py](examples/quickstart.py), [examples/custom_robot.py](examples/custom_robot.py), and [examples/streaming.py](examples/streaming.py).
 
 ## Custom Robots
 
@@ -106,7 +106,7 @@ windows = extractor.extract_to_windows(Path("my_recording.bag"))
 ```
 
 You can also define your own topic mappings with `TopicMapping`. See
-[examples/ros_bag.py](/Users/youssefmahmoud/Desktop/code/instructions/sfdd-library/sfdd/examples/ros_bag.py).
+[examples/ros_bag.py](examples/ros_bag.py).
 
 ## API Overview
 
