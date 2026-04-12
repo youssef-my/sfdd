@@ -20,7 +20,8 @@ DEFAULT_THETA = 0.3
 MIN_CORRELATION_THRESHOLD = 0.5
 MIN_CORRELATION_SAMPLES = 4
 
-SIGNAL_COLUMNS = (
+# Convenience preset for the original TurtleBot3-based research schema.
+TURTLEBOT3_SIGNALS = (
     "cmd_vel_linear_x",
     "cmd_vel_angular_z",
     "odom_x",
@@ -55,7 +56,7 @@ class SFDDModel:
 
     reference_correlations: dict[tuple[str, str], float] = field(default_factory=dict)
     theta: dict[tuple[str, str], float] = field(default_factory=dict)
-    signal_columns: tuple[str, ...] = SIGNAL_COLUMNS
+    signal_columns: tuple[str, ...] = ()
 
     def to_dict(self) -> dict:  # type: ignore[type-arg]
         """Serialize to a JSON-compatible dict."""
@@ -81,7 +82,7 @@ class SFDDModel:
         return cls(
             reference_correlations=reference_correlations,  # type: ignore[arg-type]
             theta=theta,  # type: ignore[arg-type]
-            signal_columns=tuple(data.get("signal_columns", SIGNAL_COLUMNS)),
+            signal_columns=tuple(data.get("signal_columns", ())),
         )
 
     def save(self, path: Path) -> None:
@@ -98,11 +99,38 @@ class SFDDModel:
             return cls.from_dict(json.load(handle))
 
 
+def _make_window_record(
+    df: pd.DataFrame,
+    *,
+    action: str = "unknown",
+    source_bag: Path | None = None,
+) -> WindowRecord:
+    """Wrap a DataFrame as a WindowRecord for trainer and detector conveniences."""
+    return WindowRecord(
+        action=action,
+        start_time=0.0,
+        end_time=0.0,
+        data=df.copy(),
+        source_bag=source_bag or Path("dataframe"),
+    )
+
+
 def _get_available_signals(df: pd.DataFrame, signal_columns: tuple[str, ...]) -> list[str]:
     """Get signal columns that are present and have data."""
     return [
         column for column in signal_columns if column in df.columns and df[column].notna().sum() > 0
     ]
+
+
+def _discover_signal_columns(df: pd.DataFrame) -> list[str]:
+    """Infer usable signal columns from the numeric training data."""
+    discovered = [
+        column
+        for column in df.select_dtypes(include=["number"]).columns
+        if df[column].notna().sum() > 0
+    ]
+    logger.info("Auto-discovered signal columns: %s", discovered)
+    return discovered
 
 
 def _compute_pairwise_correlations(
@@ -135,7 +163,7 @@ class SFDDTrainer:
     def __init__(
         self,
         theta: float = DEFAULT_THETA,
-        signal_columns: tuple[str, ...] = SIGNAL_COLUMNS,
+        signal_columns: tuple[str, ...] | None = None,
     ) -> None:
         self.theta = theta
         self.signal_columns = signal_columns
@@ -151,7 +179,11 @@ class SFDDTrainer:
 
         all_data = pd.concat([window.data for window in nominal_windows], ignore_index=True)
 
-        signals = _get_available_signals(all_data, self.signal_columns)
+        signals = (
+            _discover_signal_columns(all_data)
+            if self.signal_columns is None
+            else _get_available_signals(all_data, self.signal_columns)
+        )
         if len(signals) < 2:
             raise DetectionError(f"Need at least 2 signal columns, found {len(signals)}: {signals}")
 
@@ -176,7 +208,7 @@ class SFDDTrainer:
         model = SFDDModel(
             reference_correlations=filtered_correlations,
             theta=theta_map,
-            signal_columns=self.signal_columns,
+            signal_columns=tuple(signals),
         )
 
         logger.info(
@@ -185,6 +217,30 @@ class SFDDTrainer:
             len(nominal_windows),
         )
         return model
+
+    def fit_from_dataframes(
+        self,
+        dataframes: list[pd.DataFrame],
+        min_correlation_threshold: float = MIN_CORRELATION_THRESHOLD,
+    ) -> SFDDModel:
+        """Train an SFDD model directly from DataFrames.
+
+        Each DataFrame represents one nominal recording/run. All numeric
+        columns are used as signals (unless signal_columns was set explicitly
+        in the constructor).
+
+        Args:
+            dataframes: List of DataFrames with sensor columns.
+            min_correlation_threshold: Minimum |r| to retain a pair.
+
+        Returns:
+            Trained SFDDModel.
+        """
+        windows = [_make_window_record(df, source_bag=Path("dataframe")) for df in dataframes]
+        return self.fit(
+            windows,
+            min_correlation_threshold=min_correlation_threshold,
+        )
 
 
 class SFDDDetector:
@@ -214,3 +270,15 @@ class SFDDDetector:
             correlation_deltas=deltas,
             method="sfdd",
         )
+
+    def predict_dataframe(self, df: pd.DataFrame, model: SFDDModel) -> DetectionResult:
+        """Check a DataFrame window for faults.
+
+        Args:
+            df: DataFrame with sensor columns matching the model.
+            model: Trained SFDDModel.
+
+        Returns:
+            DetectionResult.
+        """
+        return self.predict(_make_window_record(df, source_bag=Path("dataframe")), model)

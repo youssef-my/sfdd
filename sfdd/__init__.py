@@ -1,6 +1,12 @@
 """Public API for the standalone SFDD library."""
 
-from sfdd.detector import DetectionResult, SFDDDetector, SFDDModel, SFDDTrainer
+from sfdd.detector import (
+    TURTLEBOT3_SIGNALS,
+    DetectionResult,
+    SFDDDetector,
+    SFDDModel,
+    SFDDTrainer,
+)
 from sfdd.diagnosis import minimal_hitting_sets
 from sfdd.exceptions import (
     DetectionError,
@@ -10,6 +16,7 @@ from sfdd.exceptions import (
     SFDDError,
 )
 from sfdd.metrics import ConfusionMatrix, EvaluationReport, FaultTypeMetrics, classification_report
+from sfdd.monitor import SFDDMonitor
 from sfdd.segmentation import (
     ACTION_IDLE,
     ACTION_MOVE_BACKWARD,
@@ -36,9 +43,11 @@ __all__ = [
     "SFDDError",
     "SFDDDetector",
     "SFDDModel",
+    "SFDDMonitor",
     "SFDDTrainer",
     "SegmenterConfig",
     "SegmentationError",
+    "TURTLEBOT3_SIGNALS",
     "WindowRecord",
     "WindowSegmenter",
     "classification_report",

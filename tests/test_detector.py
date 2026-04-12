@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 from sfdd.detector import (
+    TURTLEBOT3_SIGNALS,
     SFDDDetector,
     SFDDModel,
     SFDDTrainer,
@@ -61,6 +62,31 @@ def _make_window(
     )
 
 
+def _make_custom_dataframe(
+    n: int = 24,
+    seed: int = 7,
+    faulty: bool = False,
+) -> pd.DataFrame:
+    """Create a custom-schema DataFrame for auto-discovery tests."""
+    rng = np.random.default_rng(seed)
+    base = np.linspace(0, 1, n) + rng.normal(0, 0.01, n)
+    wheel_encoder = base * 12.0
+    imu_accel_x = base * 0.4 + 0.1
+
+    if faulty:
+        wheel_encoder = rng.normal(0.0, 1.0, n)
+
+    return pd.DataFrame(
+        {
+            "motor_rpm": base * 50.0,
+            "wheel_encoder": wheel_encoder,
+            "imu_accel_x": imu_accel_x,
+            "all_nan": [np.nan] * n,
+            "mode": ["nominal"] * n,
+        }
+    )
+
+
 class TestSFDDTrainer:
     def test_fit_produces_model(self) -> None:
         windows = [_make_window(seed=index) for index in range(5)]
@@ -81,6 +107,9 @@ class TestSFDDTrainer:
 
         loaded = SFDDModel.load(path)
         assert len(loaded.reference_correlations) == len(model.reference_correlations)
+
+    def test_turtlebot3_preset_still_available(self) -> None:
+        assert "cmd_vel_linear_x" in TURTLEBOT3_SIGNALS
 
 
 class TestSFDDDetector:
@@ -110,6 +139,71 @@ class TestSFDDDetector:
         assert hasattr(result, "violated_pairs")
         assert hasattr(result, "correlation_deltas")
         assert hasattr(result, "method")
+
+
+class TestAutoDiscoverSignals:
+    """Tests for signal auto-discovery when signal_columns=None."""
+
+    def test_auto_discovers_columns(self) -> None:
+        """Trainer with signal_columns=None discovers columns from data."""
+        windows = [
+            WindowRecord(
+                action="unknown",
+                start_time=0.0,
+                end_time=0.0,
+                data=_make_custom_dataframe(seed=index),
+                source_bag=Path("custom.csv"),
+            )
+            for index in range(3)
+        ]
+
+        model = SFDDTrainer(theta=0.2).fit(windows)
+
+        assert model.signal_columns == ("motor_rpm", "wheel_encoder", "imu_accel_x")
+        assert all("all_nan" not in pair for pair in model.reference_correlations)
+
+    def test_explicit_columns_still_work(self) -> None:
+        """Trainer with explicit signal_columns uses only those."""
+        windows = [
+            WindowRecord(
+                action="unknown",
+                start_time=0.0,
+                end_time=0.0,
+                data=_make_custom_dataframe(seed=index),
+                source_bag=Path("custom.csv"),
+            )
+            for index in range(3)
+        ]
+
+        model = SFDDTrainer(
+            theta=0.2,
+            signal_columns=("motor_rpm", "wheel_encoder"),
+        ).fit(windows)
+
+        assert model.signal_columns == ("motor_rpm", "wheel_encoder")
+        assert set(model.reference_correlations) == {("motor_rpm", "wheel_encoder")}
+
+    def test_fit_from_dataframes(self) -> None:
+        """fit_from_dataframes trains from plain DataFrames."""
+        model = SFDDTrainer(theta=0.2).fit_from_dataframes(
+            [_make_custom_dataframe(seed=index) for index in range(3)]
+        )
+
+        assert model.signal_columns == ("motor_rpm", "wheel_encoder", "imu_accel_x")
+        assert len(model.reference_correlations) > 0
+
+    def test_predict_dataframe(self) -> None:
+        """predict_dataframe works without constructing WindowRecord."""
+        model = SFDDTrainer(theta=0.2).fit_from_dataframes(
+            [_make_custom_dataframe(seed=index) for index in range(3)]
+        )
+        result = SFDDDetector().predict_dataframe(
+            _make_custom_dataframe(seed=99, faulty=True),
+            model,
+        )
+
+        assert result.method == "sfdd"
+        assert isinstance(result.fault_detected, bool)
 
 
 class TestPairwiseCorrelations:

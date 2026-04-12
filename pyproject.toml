@@ -16,6 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ros = ["rosbags>=0.9"]
 dev = [
     "black>=23.0",
     "mypy>=1.5",

@@ -62,6 +62,16 @@ def main() -> None:
     print("Violated pairs:", result.violated_pairs[:5])
     print("Tracked pairs:", len(result.correlation_deltas))
 
+    custom_data = pd.DataFrame(
+        {
+            "motor_rpm": np.linspace(100.0, 130.0, 24),
+            "wheel_encoder": np.linspace(10.0, 13.0, 24),
+            "imu_accel_x": np.linspace(0.2, 0.35, 24),
+        }
+    )
+    custom_model = sfdd.SFDDTrainer(theta=0.3).fit_from_dataframes([custom_data])
+    print("Auto-discovered signals:", custom_model.signal_columns)
+
 
 if __name__ == "__main__":
     main()
