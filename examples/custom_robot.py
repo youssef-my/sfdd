@@ -1,4 +1,4 @@
-"""Example showing SFDD training on a custom robot signal schema."""
+"""Example showing corrfdd training on a custom robot signal schema."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-sfdd = importlib.import_module("sfdd")
+corrfdd = importlib.import_module("corrfdd")
 
 
 def make_robot_dataframe(seed: int, faulty: bool = False, length: int = 32) -> pd.DataFrame:
@@ -37,9 +37,9 @@ def make_robot_dataframe(seed: int, faulty: bool = False, length: int = 32) -> p
 
 
 def main() -> None:
-    trainer = sfdd.SFDDTrainer(theta=0.2)
+    trainer = corrfdd.CorrelationTrainer(theta=0.2)
     model = trainer.fit_from_dataframes([make_robot_dataframe(seed=index) for index in range(4)])
-    detector = sfdd.SFDDDetector()
+    detector = corrfdd.CorrelationDetector()
 
     result = detector.predict_dataframe(make_robot_dataframe(seed=101, faulty=True), model)
     print("Signal columns:", model.signal_columns)

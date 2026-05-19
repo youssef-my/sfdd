@@ -1,4 +1,4 @@
-"""Binary evaluation metrics for SFDD fault detection."""
+"""Binary evaluation metrics for correlation-based fault detection."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from sfdd.exceptions import EvaluationError
+from corrfdd.exceptions import EvaluationError
 
 
 @dataclass(frozen=True)

@@ -1,12 +1,12 @@
-"""Tests for the SFDD streaming monitor."""
+"""Tests for the correlation streaming monitor."""
 
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
-from sfdd import SFDDMonitor
-from sfdd.detector import SFDDTrainer
+from corrfdd import CorrelationMonitor
+from corrfdd.detector import CorrelationTrainer
 
 
 def _make_stream_dataframe(
@@ -31,13 +31,13 @@ def _make_stream_dataframe(
     )
 
 
-class TestSFDDMonitor:
+class TestCorrelationMonitor:
     def test_no_result_until_window_full(self) -> None:
         """Monitor returns empty list until window_size readings received."""
-        model = SFDDTrainer().fit_from_dataframes(
+        model = CorrelationTrainer().fit_from_dataframes(
             [_make_stream_dataframe(seed=index) for index in range(3)]
         )
-        monitor = SFDDMonitor(model, window_size=4, step_size=1)
+        monitor = CorrelationMonitor(model, window_size=4, step_size=1)
 
         for index in range(3):
             result = monitor.update(_make_stream_dataframe(seed=99).iloc[index].to_dict())
@@ -45,10 +45,10 @@ class TestSFDDMonitor:
 
     def test_detects_fault_in_stream(self) -> None:
         """Monitor flags fault when correlated signals break."""
-        model = SFDDTrainer(theta=0.2).fit_from_dataframes(
+        model = CorrelationTrainer(theta=0.2).fit_from_dataframes(
             [_make_stream_dataframe(seed=index) for index in range(3)]
         )
-        monitor = SFDDMonitor(model, window_size=8, step_size=1)
+        monitor = CorrelationMonitor(model, window_size=8, step_size=1)
 
         nominal = _make_stream_dataframe(seed=10)
         faulty = _make_stream_dataframe(seed=10, faulty=True)
@@ -67,10 +67,10 @@ class TestSFDDMonitor:
 
     def test_step_size_controls_frequency(self) -> None:
         """With step_size=4, detection runs every 4th reading."""
-        model = SFDDTrainer().fit_from_dataframes(
+        model = CorrelationTrainer().fit_from_dataframes(
             [_make_stream_dataframe(seed=index) for index in range(3)]
         )
-        monitor = SFDDMonitor(model, window_size=4, step_size=4)
+        monitor = CorrelationMonitor(model, window_size=4, step_size=4)
 
         readings = _make_stream_dataframe(seed=11)
         result_counts = []
@@ -81,10 +81,10 @@ class TestSFDDMonitor:
 
     def test_reset_clears_buffer(self) -> None:
         """After reset, buffer_size is 0 and needs full window again."""
-        model = SFDDTrainer().fit_from_dataframes(
+        model = CorrelationTrainer().fit_from_dataframes(
             [_make_stream_dataframe(seed=index) for index in range(3)]
         )
-        monitor = SFDDMonitor(model, window_size=4, step_size=1)
+        monitor = CorrelationMonitor(model, window_size=4, step_size=1)
 
         for _, row in _make_stream_dataframe(seed=12).iloc[:4].iterrows():
             monitor.update(row.to_dict())
@@ -96,10 +96,10 @@ class TestSFDDMonitor:
 
     def test_custom_signal_names(self) -> None:
         """Monitor works with arbitrary signal names (not TurtleBot3)."""
-        model = SFDDTrainer().fit_from_dataframes(
+        model = CorrelationTrainer().fit_from_dataframes(
             [_make_stream_dataframe(seed=index) for index in range(3)]
         )
-        monitor = SFDDMonitor(model, window_size=4, step_size=1)
+        monitor = CorrelationMonitor(model, window_size=4, step_size=1)
 
         results = []
         for _, row in _make_stream_dataframe(seed=13).iloc[:4].iterrows():

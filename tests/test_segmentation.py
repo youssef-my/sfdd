@@ -7,8 +7,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from sfdd.exceptions import SegmentationError
-from sfdd.segmentation import (
+from corrfdd.exceptions import SegmentationError
+from corrfdd.segmentation import (
     ACTION_IDLE,
     ACTION_MOVE_BACKWARD,
     ACTION_MOVE_FORWARD,

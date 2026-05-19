@@ -1,4 +1,4 @@
-"""Action-based window segmentation for SFDD sensor windows."""
+"""Action-based window segmentation for correlation-detector sensor windows."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from sfdd.exceptions import SegmentationError
+from corrfdd.exceptions import SegmentationError
 
 logger = logging.getLogger(__name__)
 

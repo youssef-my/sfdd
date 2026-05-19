@@ -1,23 +1,27 @@
-"""Public API for the standalone SFDD library."""
+"""Public API for the corrfdd package."""
 
-from sfdd.detector import (
+from corrfdd.detector import (
+    CorrelationDetector,
+    CorrelationModel,
+    CorrelationTrainer,
     TURTLEBOT3_SIGNALS,
     DetectionResult,
     SFDDDetector,
     SFDDModel,
     SFDDTrainer,
 )
-from sfdd.diagnosis import minimal_hitting_sets
-from sfdd.exceptions import (
+from corrfdd.diagnosis import minimal_hitting_sets
+from corrfdd.exceptions import (
+    CorrFDDError,
     DetectionError,
     DiagnosisError,
     EvaluationError,
     SegmentationError,
     SFDDError,
 )
-from sfdd.metrics import ConfusionMatrix, EvaluationReport, FaultTypeMetrics, classification_report
-from sfdd.monitor import SFDDMonitor
-from sfdd.segmentation import (
+from corrfdd.metrics import ConfusionMatrix, EvaluationReport, FaultTypeMetrics, classification_report
+from corrfdd.monitor import CorrelationMonitor, SFDDMonitor
+from corrfdd.segmentation import (
     ACTION_IDLE,
     ACTION_MOVE_BACKWARD,
     ACTION_MOVE_FORWARD,
@@ -34,6 +38,11 @@ __all__ = [
     "ACTION_MOVE_FORWARD",
     "ACTION_TURN",
     "ConfusionMatrix",
+    "CorrFDDError",
+    "CorrelationDetector",
+    "CorrelationModel",
+    "CorrelationMonitor",
+    "CorrelationTrainer",
     "DetectionError",
     "DetectionResult",
     "DiagnosisError",

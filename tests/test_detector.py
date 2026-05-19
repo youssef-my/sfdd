@@ -1,4 +1,4 @@
-"""Tests for the standalone SFDD detector."""
+"""Tests for the standalone correlation detector."""
 
 from __future__ import annotations
 
@@ -8,15 +8,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sfdd.detector import (
+from corrfdd.detector import (
+    CorrelationDetector,
+    CorrelationModel,
+    CorrelationTrainer,
     TURTLEBOT3_SIGNALS,
-    SFDDDetector,
-    SFDDModel,
-    SFDDTrainer,
     _compute_pairwise_correlations,
 )
-from sfdd.exceptions import DetectionError
-from sfdd.segmentation import WindowRecord
+from corrfdd.exceptions import DetectionError
+from corrfdd.segmentation import WindowRecord
 
 
 def _make_window(
@@ -87,54 +87,54 @@ def _make_custom_dataframe(
     )
 
 
-class TestSFDDTrainer:
+class TestCorrelationTrainer:
     def test_fit_produces_model(self) -> None:
         windows = [_make_window(seed=index) for index in range(5)]
-        model = SFDDTrainer().fit(windows)
+        model = CorrelationTrainer().fit(windows)
         assert len(model.reference_correlations) > 0
         assert len(model.theta) > 0
 
     def test_fit_empty_raises(self) -> None:
         with pytest.raises(DetectionError, match="No nominal windows"):
-            SFDDTrainer().fit([])
+            CorrelationTrainer().fit([])
 
     def test_model_serialization(self, tmp_path: Path) -> None:
         windows = [_make_window(seed=index) for index in range(3)]
-        model = SFDDTrainer().fit(windows)
+        model = CorrelationTrainer().fit(windows)
 
         path = tmp_path / "sfdd_model.json"
         model.save(path)
 
-        loaded = SFDDModel.load(path)
+        loaded = CorrelationModel.load(path)
         assert len(loaded.reference_correlations) == len(model.reference_correlations)
 
     def test_turtlebot3_preset_still_available(self) -> None:
         assert "cmd_vel_linear_x" in TURTLEBOT3_SIGNALS
 
 
-class TestSFDDDetector:
+class TestCorrelationDetector:
     def test_nominal_window_no_fault(self) -> None:
         train_windows = [_make_window(seed=index) for index in range(5)]
-        model = SFDDTrainer().fit(train_windows)
+        model = CorrelationTrainer().fit(train_windows)
 
-        result = SFDDDetector().predict(_make_window(seed=99), model)
-        assert result.method == "sfdd"
+        result = CorrelationDetector().predict(_make_window(seed=99), model)
+        assert result.method == "corrfdd"
         assert isinstance(result.fault_detected, bool)
 
     def test_faulty_window_detected(self) -> None:
         train_windows = [_make_window(seed=index, correlated=True) for index in range(5)]
-        model = SFDDTrainer().fit(train_windows)
+        model = CorrelationTrainer().fit(train_windows)
 
-        result = SFDDDetector().predict(_make_window(seed=0, correlated=False), model)
+        result = CorrelationDetector().predict(_make_window(seed=0, correlated=False), model)
         assert result.fault_detected
         assert len(result.violated_pairs) > 0
-        assert result.method == "sfdd"
+        assert result.method == "corrfdd"
 
     def test_detection_result_fields(self) -> None:
         train_windows = [_make_window(seed=index) for index in range(3)]
-        model = SFDDTrainer().fit(train_windows)
+        model = CorrelationTrainer().fit(train_windows)
 
-        result = SFDDDetector().predict(_make_window(seed=42), model)
+        result = CorrelationDetector().predict(_make_window(seed=42), model)
         assert hasattr(result, "fault_detected")
         assert hasattr(result, "violated_pairs")
         assert hasattr(result, "correlation_deltas")
@@ -157,7 +157,7 @@ class TestAutoDiscoverSignals:
             for index in range(3)
         ]
 
-        model = SFDDTrainer(theta=0.2).fit(windows)
+        model = CorrelationTrainer(theta=0.2).fit(windows)
 
         assert model.signal_columns == ("motor_rpm", "wheel_encoder", "imu_accel_x")
         assert all("all_nan" not in pair for pair in model.reference_correlations)
@@ -175,7 +175,7 @@ class TestAutoDiscoverSignals:
             for index in range(3)
         ]
 
-        model = SFDDTrainer(
+        model = CorrelationTrainer(
             theta=0.2,
             signal_columns=("motor_rpm", "wheel_encoder"),
         ).fit(windows)
@@ -185,7 +185,7 @@ class TestAutoDiscoverSignals:
 
     def test_fit_from_dataframes(self) -> None:
         """fit_from_dataframes trains from plain DataFrames."""
-        model = SFDDTrainer(theta=0.2).fit_from_dataframes(
+        model = CorrelationTrainer(theta=0.2).fit_from_dataframes(
             [_make_custom_dataframe(seed=index) for index in range(3)]
         )
 
@@ -194,15 +194,15 @@ class TestAutoDiscoverSignals:
 
     def test_predict_dataframe(self) -> None:
         """predict_dataframe works without constructing WindowRecord."""
-        model = SFDDTrainer(theta=0.2).fit_from_dataframes(
+        model = CorrelationTrainer(theta=0.2).fit_from_dataframes(
             [_make_custom_dataframe(seed=index) for index in range(3)]
         )
-        result = SFDDDetector().predict_dataframe(
+        result = CorrelationDetector().predict_dataframe(
             _make_custom_dataframe(seed=99, faulty=True),
             model,
         )
 
-        assert result.method == "sfdd"
+        assert result.method == "corrfdd"
         assert isinstance(result.fault_detected, bool)
 
 

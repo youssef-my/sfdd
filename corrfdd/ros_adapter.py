@@ -1,4 +1,4 @@
-"""Optional ROS bag extraction helpers for SFDD."""
+"""Optional ROS bag extraction helpers for the correlation baseline."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from sfdd.segmentation import WindowRecord, WindowSegmenter
+from corrfdd.segmentation import WindowRecord, WindowSegmenter
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +116,7 @@ def turtlebot3_mappings() -> list[TopicMapping]:
 
 
 class BagExtractor:
-    """Extract ROS1/ROS2 bag files into DataFrames for SFDD."""
+    """Extract ROS1/ROS2 bag files into DataFrames for corrfdd."""
 
     def __init__(
         self,

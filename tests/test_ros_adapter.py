@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sfdd.ros_adapter import (
+from corrfdd.ros_adapter import (
     BagExtractor,
     TopicMapping,
     _check_rosbags_installed,

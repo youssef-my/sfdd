@@ -1,4 +1,4 @@
-"""Illustrative ROS bag extraction example for SFDD."""
+"""Illustrative ROS bag extraction example for corrfdd."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from sfdd.ros_adapter import (  # noqa: E402
+from corrfdd.ros_adapter import (  # noqa: E402
     BagExtractor,
     TopicMapping,
     extract_odometry,
@@ -23,7 +23,7 @@ def main() -> None:
     BagExtractor(turtlebot3_mappings())
     example_bag = Path("my_recording.bag")
     print(
-        f"Use extractor.extract({example_bag!r}) to load a TurtleBot3 bag after installing sfdd[ros]."
+        f"Use extractor.extract({example_bag!r}) to load a TurtleBot3 bag after installing corrfdd[ros]."
     )
 
     # Option 2: Define your own mappings for a custom robot.

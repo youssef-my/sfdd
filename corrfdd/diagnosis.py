@@ -1,4 +1,4 @@
-"""Consistency-based diagnosis via minimal hitting sets."""
+"""Consistency-based diagnosis helpers via minimal hitting sets."""
 
 from __future__ import annotations
 

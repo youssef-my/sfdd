@@ -1,4 +1,4 @@
-"""Streaming monitor built on top of the SFDD detector."""
+"""Streaming monitor built on top of the correlation detector."""
 
 from __future__ import annotations
 
@@ -7,19 +7,19 @@ from pathlib import Path
 
 import pandas as pd
 
-from sfdd.detector import DetectionResult, SFDDDetector, SFDDModel
-from sfdd.segmentation import WindowRecord
+from corrfdd.detector import CorrelationDetector, CorrelationModel, DetectionResult
+from corrfdd.segmentation import WindowRecord
 
 
-class SFDDMonitor:
-    """Online SFDD monitor for live sensor streams."""
+class CorrelationMonitor:
+    """Online correlation monitor for live sensor streams."""
 
     def __init__(
         self,
-        model: SFDDModel,
+        model: CorrelationModel,
         window_size: int = 8,
         step_size: int = 1,
-        detector: SFDDDetector | None = None,
+        detector: CorrelationDetector | None = None,
     ) -> None:
         if window_size < 1:
             raise ValueError("window_size must be at least 1")
@@ -29,7 +29,7 @@ class SFDDMonitor:
         self.model = model
         self.window_size = window_size
         self.step_size = step_size
-        self.detector = detector or SFDDDetector()
+        self.detector = detector or CorrelationDetector()
         self._buffer: deque[dict[str, float]] = deque(maxlen=window_size)
         self._readings_since_detection = 0
 
@@ -62,3 +62,7 @@ class SFDDMonitor:
     def buffer_size(self) -> int:
         """Current number of readings in the buffer."""
         return len(self._buffer)
+
+
+# Backwards-compatible alias for earlier SFDD-branded releases.
+SFDDMonitor = CorrelationMonitor

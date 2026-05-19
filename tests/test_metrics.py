@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sfdd.exceptions import EvaluationError
-from sfdd.metrics import ConfusionMatrix, classification_report
+from corrfdd.exceptions import EvaluationError
+from corrfdd.metrics import ConfusionMatrix, classification_report
 
 
 class TestConfusionMatrix:

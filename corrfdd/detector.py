@@ -1,4 +1,4 @@
-"""SFDD baseline: Sensor-based Fault Detection and Diagnosis."""
+"""Correlation-based fault detection baseline inspired by SFDD."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from sfdd.exceptions import DetectionError
-from sfdd.segmentation import WindowRecord
+from corrfdd.exceptions import DetectionError
+from corrfdd.segmentation import WindowRecord
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class DetectionResult:
 
 
 @dataclass
-class SFDDModel:
+class CorrelationModel:
     """Reference correlations learned from nominal data."""
 
     reference_correlations: dict[tuple[str, str], float] = field(default_factory=dict)
@@ -69,7 +69,7 @@ class SFDDModel:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> SFDDModel:  # type: ignore[type-arg]
+    def from_dict(cls, data: dict) -> CorrelationModel:  # type: ignore[type-arg]
         """Deserialize from a JSON-parsed dict."""
         reference_correlations = {
             tuple(key.split("|")): value  # type: ignore[misc]
@@ -93,7 +93,7 @@ class SFDDModel:
             json.dump(self.to_dict(), handle, indent=2)
 
     @classmethod
-    def load(cls, path: Path) -> SFDDModel:
+    def load(cls, path: Path) -> CorrelationModel:
         """Load the model from a JSON file."""
         with Path(path).open(encoding="utf-8") as handle:
             return cls.from_dict(json.load(handle))
@@ -157,8 +157,8 @@ def _compute_pairwise_correlations(
     return correlations
 
 
-class SFDDTrainer:
-    """Train a global SFDD model from nominal windows."""
+class CorrelationTrainer:
+    """Train a global correlation-baseline model from nominal windows."""
 
     def __init__(
         self,
@@ -172,7 +172,7 @@ class SFDDTrainer:
         self,
         nominal_windows: list[WindowRecord],
         min_correlation_threshold: float = MIN_CORRELATION_THRESHOLD,
-    ) -> SFDDModel:
+    ) -> CorrelationModel:
         """Learn reference correlations from nominal training windows."""
         if not nominal_windows:
             raise DetectionError("No nominal windows provided for training")
@@ -198,21 +198,21 @@ class SFDDTrainer:
         }
 
         logger.info(
-            "Retained %d/%d global SFDD pairs with |r| >= %.2f",
+            "Retained %d/%d global correlation pairs with |r| >= %.2f",
             len(filtered_correlations),
             len(reference_correlations),
             min_correlation_threshold,
         )
 
         theta_map = {pair: self.theta for pair in filtered_correlations}
-        model = SFDDModel(
+        model = CorrelationModel(
             reference_correlations=filtered_correlations,
             theta=theta_map,
             signal_columns=tuple(signals),
         )
 
         logger.info(
-            "Trained SFDD model: %d retained reference correlations from %d windows",
+            "Trained correlation model: %d retained reference correlations from %d windows",
             len(filtered_correlations),
             len(nominal_windows),
         )
@@ -222,8 +222,8 @@ class SFDDTrainer:
         self,
         dataframes: list[pd.DataFrame],
         min_correlation_threshold: float = MIN_CORRELATION_THRESHOLD,
-    ) -> SFDDModel:
-        """Train an SFDD model directly from DataFrames.
+    ) -> CorrelationModel:
+        """Train a correlation model directly from DataFrames.
 
         Each DataFrame represents one nominal recording/run. All numeric
         columns are used as signals (unless signal_columns was set explicitly
@@ -234,7 +234,7 @@ class SFDDTrainer:
             min_correlation_threshold: Minimum |r| to retain a pair.
 
         Returns:
-            Trained SFDDModel.
+            Trained CorrelationModel.
         """
         windows = [_make_window_record(df, source_bag=Path("dataframe")) for df in dataframes]
         return self.fit(
@@ -243,11 +243,11 @@ class SFDDTrainer:
         )
 
 
-class SFDDDetector:
-    """Detect faults using the SFDD correlation-based method."""
+class CorrelationDetector:
+    """Detect faults using the correlation-baseline method."""
 
-    def predict(self, window: WindowRecord, model: SFDDModel) -> DetectionResult:
-        """Check a window for faults using SFDD."""
+    def predict(self, window: WindowRecord, model: CorrelationModel) -> DetectionResult:
+        """Check a window for faults using the correlation baseline."""
         signals = _get_available_signals(window.data, model.signal_columns)
         observed = _compute_pairwise_correlations(window.data, signals)
 
@@ -268,17 +268,23 @@ class SFDDDetector:
             fault_detected=bool(violated_pairs),
             violated_pairs=violated_pairs,
             correlation_deltas=deltas,
-            method="sfdd",
+            method="corrfdd",
         )
 
-    def predict_dataframe(self, df: pd.DataFrame, model: SFDDModel) -> DetectionResult:
+    def predict_dataframe(self, df: pd.DataFrame, model: CorrelationModel) -> DetectionResult:
         """Check a DataFrame window for faults.
 
         Args:
             df: DataFrame with sensor columns matching the model.
-            model: Trained SFDDModel.
+            model: Trained CorrelationModel.
 
         Returns:
             DetectionResult.
         """
         return self.predict(_make_window_record(df, source_bag=Path("dataframe")), model)
+
+
+# Backwards-compatible aliases for earlier SFDD-branded releases.
+SFDDModel = CorrelationModel
+SFDDTrainer = CorrelationTrainer
+SFDDDetector = CorrelationDetector

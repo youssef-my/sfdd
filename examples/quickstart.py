@@ -1,4 +1,4 @@
-"""Minimal standalone example for training and running SFDD."""
+"""Minimal standalone example for training and running corrfdd."""
 
 from __future__ import annotations
 
@@ -13,10 +13,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-sfdd = importlib.import_module("sfdd")
+corrfdd = importlib.import_module("corrfdd")
 
 
-def make_window(seed: int, faulty: bool = False) -> sfdd.WindowRecord:
+def make_window(seed: int, faulty: bool = False) -> corrfdd.WindowRecord:
     """Create a synthetic sensor window with optionally broken correlations."""
     rng = np.random.default_rng(seed)
     timestamps = pd.date_range("2024-01-01", periods=40, freq="250ms")
@@ -41,7 +41,7 @@ def make_window(seed: int, faulty: bool = False) -> sfdd.WindowRecord:
         index=timestamps,
     )
 
-    return sfdd.WindowRecord(
+    return corrfdd.WindowRecord(
         action="move_forward",
         start_time=timestamps[0].timestamp(),
         end_time=timestamps[-1].timestamp(),
@@ -52,9 +52,9 @@ def make_window(seed: int, faulty: bool = False) -> sfdd.WindowRecord:
 
 def main() -> None:
     nominal_windows = [make_window(seed=index) for index in range(5)]
-    model = sfdd.SFDDTrainer(theta=0.25).fit(nominal_windows)
+    model = corrfdd.CorrelationTrainer(theta=0.25).fit(nominal_windows)
 
-    detector = sfdd.SFDDDetector()
+    detector = corrfdd.CorrelationDetector()
     test_window = make_window(seed=99, faulty=True)
     result = detector.predict(test_window, model)
 
@@ -69,7 +69,7 @@ def main() -> None:
             "imu_accel_x": np.linspace(0.2, 0.35, 24),
         }
     )
-    custom_model = sfdd.SFDDTrainer(theta=0.3).fit_from_dataframes([custom_data])
+    custom_model = corrfdd.CorrelationTrainer(theta=0.3).fit_from_dataframes([custom_data])
     print("Auto-discovered signals:", custom_model.signal_columns)
 
 

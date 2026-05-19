@@ -1,4 +1,4 @@
-"""Streaming SFDD example with a rolling live monitor."""
+"""Streaming corrfdd example with a rolling live monitor."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-sfdd = importlib.import_module("sfdd")
+corrfdd = importlib.import_module("corrfdd")
 
 
 def make_nominal_dataframe(seed: int, length: int = 24) -> pd.DataFrame:
@@ -42,10 +42,10 @@ def stream_rows(length: int = 20) -> list[dict[str, float]]:
 
 
 def main() -> None:
-    model = sfdd.SFDDTrainer(theta=0.2).fit_from_dataframes(
+    model = corrfdd.CorrelationTrainer(theta=0.2).fit_from_dataframes(
         [make_nominal_dataframe(seed=index) for index in range(4)]
     )
-    monitor = sfdd.SFDDMonitor(model, window_size=8, step_size=1)
+    monitor = corrfdd.CorrelationMonitor(model, window_size=8, step_size=1)
 
     for index, reading in enumerate(stream_rows(), start=1):
         results = monitor.update(reading)

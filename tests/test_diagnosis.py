@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sfdd.diagnosis import minimal_hitting_sets
+from corrfdd.diagnosis import minimal_hitting_sets
 
 
 class TestMinimalHittingSets:
